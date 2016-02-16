@@ -1,0 +1,47 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="MinecraftManager.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Minecraft" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Desktop\mc\Minecraft.exe</Value>
+    </Setting>
+    <Setting Name="MinecraftServerPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Desktop\mc\server</Value>
+    </Setting>
+    <Setting Name="MinecraftServerBackupPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Dropbox</Value>
+    </Setting>
+    <Setting Name="NbtExplorer" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Desktop\mc\B NBTExplorer\NBTExplorer.exe</Value>
+    </Setting>
+    <Setting Name="MCEdit" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Desktop\installs\MCEdit-stable33-64bit-win32\mcedit\MCEdit-64bit\mcedit.bat</Value>
+    </Setting>
+    <Setting Name="bMinecraftChat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Owner\Desktop\mc\bMinecraftChat\PacketPasser.exe</Value>
+    </Setting>
+    <Setting Name="Links" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;CraftBukkit,http://www.google.com/reader/view/feed%2Fhttp%3A%2F%2Fdl.bukkit.org%2Fdownloads%2Fcraftbukkit%2Ffeeds%2Flatest-rb.rss&lt;/string&gt;
+  &lt;string&gt;Sign Tutorial,http://ess.khhq.net/wiki/Sign_Tutorial&lt;/string&gt;
+  &lt;string&gt;McMmo,http://mcmmo.wikia.com/wiki/McMMO_Wiki&lt;/string&gt;
+  &lt;string&gt;Multiverse 2,https://github.com/Multiverse/Multiverse-Core/wiki&lt;/string&gt;
+  &lt;string&gt;PermissionsEx,https://github.com/t3hk0d3/PermissionsEx/wiki&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="MinecraftAliases" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;Admin&lt;/string&gt;
+  &lt;string&gt;Maslow&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="MinecraftBinPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">%appdata%\.minecraft\bin</Value>
+    </Setting>
+    <Setting Name="Java" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Program Files (x86)\Java\jre6\bin\java.exe</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
