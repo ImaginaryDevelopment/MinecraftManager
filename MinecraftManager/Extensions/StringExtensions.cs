@@ -11,6 +11,7 @@ namespace MinecraftManager
         {
             return s.Substring(s.IndexOf(indexText) + indexText.Length);
         }
+
         /// <summary>
         /// Preserves the split characters as part of the previous item
         /// </summary>
@@ -43,11 +44,9 @@ namespace MinecraftManager
 
                     remainder = remainder.Substring(item.Length);
                 }
-
-
             }
-
         }
+
         public static IEnumerable<string> SplitLines(this string fullText)
         {
             foreach (var item in fullText.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None))
@@ -68,6 +67,7 @@ namespace MinecraftManager
         {
             return !string.IsNullOrEmpty(s);
         }
+
         public static string EnsureEndsWith(this string s, string end)
         {
             if (s.EndsWith(end))

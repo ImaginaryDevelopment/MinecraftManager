@@ -10,7 +10,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using System.Threading;
+
+using Microsoft.FSharp.Core;
 
 namespace MinecraftManager
 {
@@ -23,14 +24,12 @@ namespace MinecraftManager
         {
             Properties.Settings.Default.PropertyChanged += Default_PropertyChanged;
             InitializeComponent();
-           
-
         }
-       
+
         void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            Expression<Func<string>> compilerSafetyFunc= ()=>Properties.Settings.Default.MinecraftServerPath;
-            var settingName=((MemberExpression)compilerSafetyFunc.Body).Member.Name;
+            Expression<Func<string>> compilerSafetyFunc = () => Properties.Settings.Default.MinecraftServerPath;
+            var settingName = ((MemberExpression)compilerSafetyFunc.Body).Member.Name;
             if (e.PropertyName == settingName)
                 OnServerPathFoundOrChanged();
         }
@@ -101,7 +100,6 @@ namespace MinecraftManager
                     doubleClickActions.Add(worldNode, () => Process.Start(closurePath));
                     worldsNode.Nodes.Add(worldNode);
                 }
-
             }
         }
 
@@ -113,10 +111,9 @@ namespace MinecraftManager
             {
                 var closure = t;
                 var textName = Path.GetFileNameWithoutExtension(t);
-                var newNode = new TreeNode(textName) {Name = textName, Tag = t, ToolTipText = t};
+                var newNode = new TreeNode(textName) { Name = textName, Tag = t, ToolTipText = t };
                 textNode.Nodes.Add(newNode);
                 doubleClickActions.Add(newNode, () => Process.Start(closure));
-
             }
         }
 
@@ -131,7 +128,7 @@ namespace MinecraftManager
             foreach (var p in plugins)
             {
                 var pluginName = Path.GetFileNameWithoutExtension(p);
-                var newNode = new TreeNode(pluginName) {Name = pluginName, Tag = p, ToolTipText = p};
+                var newNode = new TreeNode(pluginName) { Name = pluginName, Tag = p, ToolTipText = p };
                 pluginNode.Nodes.Add(newNode);
                 doubleClickActions.Add(newNode, () => Process.Start(Path.GetDirectoryName(p)));
             }
@@ -141,14 +138,11 @@ namespace MinecraftManager
         {
             try
             {
-
                 OnServerLogChanged();
             }
             catch (Exception ex)
             {
-
                 MessageBox.Show("Failed to read logfile size", ex.Message);
-
             }
         }
 
@@ -158,23 +152,18 @@ namespace MinecraftManager
             SetupWorldsUI();
             SetupYamlUI();
             SetupBukkitMenus();
-            var serverPath=FindServerPath();
+            var serverPath = FindServerPath();
             if (Directory.Exists(serverPath))
             {
                 var server = "server.log";
                 var serverLog = System.IO.Path.Combine(serverPath, server);
                 if (File.Exists(serverLog) == false)
                     return;
-                
-                
-              
-               
-                
             }
         }
-       
 
-        private void OnServerLogChanged()
+
+        void OnServerLogChanged()
         {
             var logSize = GetLogSize();
             var mbSize = Math.Round(((decimal)logSize / 1024 / 1024), 2).ToString() + "Mb";
@@ -202,18 +191,18 @@ namespace MinecraftManager
             else this.archiveLogToolStripMenuItem.BackColor = Color.White;
 
         }
-       
-        
+
+
 
         void Form1_Load(object sender, EventArgs e)
         {
-            
+
             toolStripStatusLabel1.Visible = false;
 
 
             var serverPath = FindServerPath(false);
 
-            if (serverPath.HasValue()&& Directory.Exists(serverPath))
+            if (serverPath.HasValue() && Directory.Exists(serverPath))
             {
                 OnServerPathFoundOrChanged();
             }
@@ -223,7 +212,7 @@ namespace MinecraftManager
             SetupTextUI();
             SetupSettingsUI();
         }
-       
+
         void SetupSettingsUI()
         {
             var settingProps =
@@ -238,7 +227,7 @@ namespace MinecraftManager
                 var value = accessors.First().Invoke(Properties.Settings.Default, null).ToString();
                 if (value.HasValue() && value.Length > 2 && value[1] == ':')
                 {
-                    if (closure.Name.EndsWith("path",StringComparison.CurrentCultureIgnoreCase))
+                    if (closure.Name.EndsWith("path", StringComparison.CurrentCultureIgnoreCase))
                     {
                         if (Directory.Exists(value) == false)
                             newItem.BackColor = Color.Red;
@@ -275,7 +264,7 @@ namespace MinecraftManager
             }
         }
 
-       
+
         void SetupYamlUI()
         {
             var serverPath = Properties.Settings.Default.MinecraftServerPath;
@@ -309,19 +298,19 @@ namespace MinecraftManager
 
             }
         }
-        string FindServerPath(bool promptUser=true)
+        string FindServerPath(bool promptUser = true)
         {
             var path = Properties.Settings.Default.MinecraftServerPath;
             if (Directory.Exists(path))
                 return path;
-						if(promptUser)
-            this.SetFolderPath("Please locate the minecraft server folder", p =>
-            {
-                var closure = p;
-                Properties.Settings.Default.MinecraftServerPath = closure;
-                Properties.Settings.Default.Save();
-            }
-                   );
+            if (promptUser)
+                this.SetFolderPath("Please locate the minecraft server folder", p =>
+                {
+                    var closure = p;
+                    Properties.Settings.Default.MinecraftServerPath = closure;
+                    Properties.Settings.Default.Save();
+                }
+                       );
             return Properties.Settings.Default.MinecraftServerPath;
         }
 
@@ -341,7 +330,7 @@ namespace MinecraftManager
                 t.Start();
                 return null;
             }
-            
+
             return log;
         }
         LogDisplay _logDisplay;
@@ -411,25 +400,28 @@ namespace MinecraftManager
 
         string FindJava()
         {
-            string java = null;
+            var java = FSharpOption<string>.None;
             if (Properties.Settings.Default.Java.IsNullOrEmpty() == false)
-                java = JavaExe.InPathBehavior.TryLocate();
-            if (java.IsNullOrEmpty())
+                java = Lib.JavaExe.InPathBehavior.TryLocate(Lib.CrossCutting.Logging.log);
+            if (FSharpOption<string>.get_IsNone(java))
             {
-                java = JavaExe.PropertyBehavior.TryLocate(() => Properties.Settings.Default.Java, () =>
+                java = Lib.JavaExe.PropertyBehavior.TryLocate(() => Properties.Settings.Default.Java, () =>
                 {
                     this.SetFilePath("Locate java.exe", p =>
                     {
                         Properties.Settings.Default.Java = p;
                         Properties.Settings.Default.Save();
+
                     });
+                    return Properties.Settings.Default.Java;
                 });
-                if (java.IsNullOrEmpty())
+                if (FSharpOption<string>.get_IsNone(java))
                     return null;
             }
-            return java;
+            return java.Value;
         }
-        private void RunMinecraftAs(string java, string minecraftBinPath, string alias = null)
+
+        void RunMinecraftAs(string java, string minecraftBinPath, string alias = null)
         {
 
             if (alias.IsNullOrEmpty())
@@ -453,7 +445,7 @@ namespace MinecraftManager
             }
 
         }
-  
+
         const string clientMemoryArguments = "-Xms512m -Xmx1024m";
         const string serverMemoryArguments = "-Xincgc -Xmx1024M";
 
@@ -474,7 +466,7 @@ namespace MinecraftManager
                 newMenu.ToolTipText = bukkit.info.LastWriteTime.ToShortDateString();
                 newMenu.Click += (sender, e) =>
                     {
-                        var newBukkit=LaunchBukkit(bukkit.info);
+                        var newBukkit = LaunchBukkit(bukkit.info);
                         if (newBukkit != null)
                             this.bukkit = newBukkit;
                     };
@@ -515,11 +507,11 @@ namespace MinecraftManager
             }
             return bukkit;
         }
-        private void craftBukkitToolStripMenuItem_Click(object sender, EventArgs e)
+        void craftBukkitToolStripMenuItem_Click(object sender, EventArgs e)
         {
 
             var serverPath = FindServerPath();
-            if (serverPath.IsNullOrEmpty()|| Directory.Exists(serverPath)==false)
+            if (serverPath.IsNullOrEmpty() || Directory.Exists(serverPath) == false)
                 return;
 
             var bukkits = System.IO.Directory.GetFiles(serverPath, "*.jar").Where(p => p.Contains("bukkit"));
@@ -529,13 +521,13 @@ namespace MinecraftManager
                              select new { b, info };
             var latestBukkit = bukkitInfo.FirstOrDefault();
             LaunchBukkit(latestBukkit.info);
-           
+
         }
 
         string FindMinecraftBinPath()
         {
-          var minecraftBinPath=  Properties.Settings.Default.MinecraftBinPath;
-          if (!Directory.Exists(minecraftBinPath))
+            var minecraftBinPath = Properties.Settings.Default.MinecraftBinPath;
+            if (!Directory.Exists(minecraftBinPath))
             {
                 var appData = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var title = "Minecraft Bin, usually at %AppData%\\.minecraft\\bin \"" + appData + "\"";
@@ -556,7 +548,7 @@ namespace MinecraftManager
             }
             return minecraftBinPath;
         }
-      
+
         void minecraftAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string java = FindJava();
@@ -570,15 +562,15 @@ namespace MinecraftManager
 
         void minecraftToolStripMenuItem_Click(object sender, EventArgs e)
         {
-           
-            Process mc=null;
+
+            Process mc = null;
             RunOrSetupProcess("Minecraft", () => Properties.Settings.Default.Minecraft, ref mc,
                               s => Properties.Settings.Default.Minecraft = s);
-            
+
 
         }
 
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show(Application.ProductVersion);
         }
@@ -588,12 +580,12 @@ namespace MinecraftManager
             if (server == null)
                 return Enumerable.Empty<TreeNode>();
             var pluginsNode = server.TryFindNode("plugins");
-            if(pluginsNode==null)
+            if (pluginsNode == null)
                 return Enumerable.Empty<TreeNode>();
             return pluginsNode.Nodes.Cast<TreeNode>();
 
         }
-        private void viewLogToolStripMenuItem_Click(object sender, EventArgs e)
+        void viewLogToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (_logDisplay != null && _logDisplay.IsDisposed == false && _logDisplay.Disposing == false)
             {
@@ -606,14 +598,14 @@ namespace MinecraftManager
             var plugins = FindPlugins();
 
 
-            _logDisplay = new LogDisplay(log,plugins.Select(p=>p.Name).ToArray());
-            
-           
+            _logDisplay = new LogDisplay(log, plugins.Select(p => p.Name).ToArray());
+
+
 
             _logDisplay.Show(this);
         }
 
-       
+
 
 
 

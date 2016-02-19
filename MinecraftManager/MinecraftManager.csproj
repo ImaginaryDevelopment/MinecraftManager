@@ -112,6 +112,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -124,7 +125,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CrossCutting\Logging.cs" />
     <Compile Include="Extensions\ReactiveExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\WinFormExtensions.cs" />
@@ -140,8 +140,6 @@
     <Compile Include="InputForm.Designer.cs">
       <DependentUpon>InputForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="JavaExe\PropertyBehavior.cs" />
-    <Compile Include="JavaExe\InPathBehavior.cs" />
     <Compile Include="LogDisplay.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -208,6 +206,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Sources.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MinecraftManager.Lib\MinecraftManager.Lib.fsproj">
+      <Project>{04e4d1ee-57be-4a76-88ac-975de53b27fc}</Project>
+      <Name>MinecraftManager.Lib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 11
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinecraftManager", "MinecraftManager\MinecraftManager.csproj", "{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinecraftManager.Tests", "MinecraftManager.Tests\MinecraftManager.Tests.csproj", "{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}"
@@ -12,22 +14,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MinecraftManager.Lib", "MinecraftManager.Lib\MinecraftManager.Lib.fsproj", "{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}"
+EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccLocalPath0 = .
-		SccLocalPath1 = MinecraftManager.Tests
-		SccLocalPath2 = MinecraftManager
-		SccNumberOfProjects = 3
-		SccProjectName1 = MinecraftManager.Tests
-		SccProjectName2 = MinecraftManager
-		SccProjectUniqueName1 = MinecraftManager.Tests\\MinecraftManager.Tests.csproj
-		SccProjectUniqueName2 = MinecraftManager\\MinecraftManager.csproj
-		SccTeamFoundationServer = https://imaginarydevelopment.tfspreview.com/defaultcollection
-	EndGlobalSection
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = MinecraftManager.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -37,16 +26,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|x86.ActiveCfg = Release|Any CPU
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Debug|Any CPU.ActiveCfg = Debug|x86
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Debug|Mixed Platforms.Build.0 = Debug|x86
@@ -57,8 +36,33 @@ Global
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Release|Mixed Platforms.Build.0 = Release|x86
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Release|x86.ActiveCfg = Release|x86
 		{F63D01BA-058B-4A9B-A94E-EA4DB3B9A760}.Release|x86.Build.0 = Release|x86
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{75156EF2-CDE3-4C27-827E-C41C7B7BA2EE}.Release|x86.ActiveCfg = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Debug|x86.Build.0 = Debug|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|x86.ActiveCfg = Release|Any CPU
+		{04E4D1EE-57BE-4A76-88AC-975DE53B27FC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = MinecraftManager.vsmdi
 	EndGlobalSection
 EndGlobal
