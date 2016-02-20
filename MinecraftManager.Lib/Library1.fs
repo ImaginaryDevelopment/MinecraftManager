@@ -5,50 +5,6 @@ open System.Diagnostics
 open System.ComponentModel
 open System.IO
 open System.Runtime.CompilerServices
-//module ProcessCommands = 
-//
-//    type CommandPathType = 
-//        |RelativeCmdPath
-//        |AbsoluteCmdPath
-//        |ShellLocateCmdName
-//    type CommandRefCreateArgs = 
-//        | RelativeCmd of relativePath:string
-//        | AbsoluteCmd of rootedPath:string
-//        | ShellLocateCmd of filename:string*verificationArgsOpt:string option
-//    type CommandRef = 
-//        private {CmdPath:string; CommandPathType:CommandPathType}
-//
-//    [<RequireQualifiedAccess; CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
-//    module CommandRef =
-//        let private verifyProcessCanStart (filename, argsOpt) = 
-//            try
-//                let _output = 
-//                //expect failing items to throw exception for file not found or win32 exception
-//                //consider calling "where.exe" for paths that are relative
-//                    match argsOpt with 
-//                    | Some argsOpt -> Process.Start(filename,argsOpt)
-//                    |None -> Process.Start(filename)
-//
-//                    |> fun p ->  p.WaitForExit(); p.StandardOutput.ReadToEnd()
-//                Some filename
-//            with :? Win32Exception as ex -> 
-//                None
-//
-//        // expect it to be a relative path, absolute path,  
-//        // or able to return some text on an attempt to run with no args (something under %PATH%)
-//        let tryMakeCmdRef =
-//            function
-//                | RelativeCmd relativePath -> relativePath,CommandPathType.RelativeCmdPath, File.Exists relativePath
-//                | AbsoluteCmd rootedPath -> rootedPath, CommandPathType.AbsoluteCmdPath, Path.IsPathRooted rootedPath && File.Exists rootedPath
-//                //| ShellLocateCmd (filename, None) -> filename, Process.Start()
-//                | ShellLocateCmd (filename,argsOpt) -> 
-//                    let canStart = 
-//                        verifyProcessCanStart (filename,argsOpt) 
-//                        |> function |Some _ -> true | None -> false
-//                    (filename,CommandPathType.ShellLocateCmdName, canStart)
-//            >> function
-//                    | path, t, true ->  Some {CmdPath=path; CommandPathType = t}
-//                    | _ -> None
 
 type FileRef = private { Path:string }
 [<RequireQualifiedAccess; CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
@@ -120,7 +76,7 @@ module Logs =
             | None -> NotFoundIn toSearch
 
 
-module MineCraftAs = // translated from http://www.minecraftforum.net/forums/support/unmodified-minecraft-client/tutorials-and-faqs/1871678-how-to-use-custom-jars-in-the-new-launcher?comment=8
+module MineCraftLaunching = // translated from http://www.minecraftforum.net/forums/support/unmodified-minecraft-client/tutorials-and-faqs/1871678-how-to-use-custom-jars-in-the-new-launcher?comment=8
     // requires server (server.properties file) be set to online-mode = false
     let createProfile versionsPath version newName = 
         let targetVersionPath =Path.Combine(versionsPath, version + newName)
@@ -152,3 +108,44 @@ module MineCraftAs = // translated from http://www.minecraftforum.net/forums/sup
             // set id: to new profile name (sprintf "%s%s" version name
             Replace(sprintf """id": "%s",""" version,sprintf  """id": "%s",""" newName)
         |> fun text -> File.WriteAllText(targetJsonFile, text)
+
+    let minecraftAs minecraftBinPath java clientMemoryArguments fOnMessage alias = 
+            if String.IsNullOrEmpty minecraftBinPath || String.IsNullOrEmpty java then
+                ()
+            else
+            let binPath = if minecraftBinPath.EndsWith(@"\") then minecraftBinPath else sprintf "%s\\" minecraftBinPath
+            let nativesPath = Path.Combine(binPath, "natives")
+            let java = 
+                if java.Contains(" ") then
+                    sprintf "\"%s\"" java
+                else java
+
+            let oldPath = Environment.CurrentDirectory
+            try
+                Environment.CurrentDirectory <- binPath
+                // used to be binPath + "*\" "
+                // if this fails try minecraft.jar;lwjgl.jar;lwjgl_util.jar from http://stackoverflow.com/a/15562373/57883
+                let rawBinPath = "minecraft.jar;*"
+
+                let arguments = sprintf "%s -cp \"%s\" -Djava.library.path=\"%s\" net.minecraft.client.Minecraft %s" clientMemoryArguments rawBinPath nativesPath alias
+                try
+                    let startInfo = new ProcessStartInfo(java, arguments)
+                    let p = Process.Start(startInfo)
+                    Debug.WriteLine(p.Id)
+                    System.Threading.Thread.Sleep(1000)
+                    if (p.HasExited && p.ExitCode > 0) then
+                        // try to launch it with output redirected to give an error message to the user
+                        startInfo.RedirectStandardError <- true
+                        startInfo.RedirectStandardOutput <- true
+                        startInfo.UseShellExecute <- false
+                        let p = Process.Start(startInfo)
+                        p.WaitForExit()
+                        fOnMessage(p.StandardError.ReadToEnd())
+                        fOnMessage(p.StandardOutput.ReadToEnd())
+                with :? Win32Exception as ex ->
+                    fOnMessage(ex.Message + Environment.NewLine + java + Environment.NewLine + arguments)
+            finally
+                Environment.CurrentDirectory <- oldPath
+
+    let MinecraftAs minecraftBinPath java clientMemoryArguments alias (fOnMessage:Action<_>) = minecraftAs minecraftBinPath java clientMemoryArguments fOnMessage.Invoke alias 
+        

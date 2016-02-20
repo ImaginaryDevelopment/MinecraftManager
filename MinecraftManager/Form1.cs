@@ -417,47 +417,7 @@ namespace MinecraftManager
                 alias = InputForm.ShowDialog("Minecraft Alias", "Minecraft as whom?");
             if (alias.IsNullOrEmpty())
                 return;
-
-            var binPath = minecraftBinPath.EnsureEndsWith(@"\");
-            var nativesPath = Path.Combine(binPath, "natives");
-            if (java.Contains(" "))
-                java = "\"" + java + "\"";
-            var oldPath = Environment.CurrentDirectory;
-            try
-            {
-                Environment.CurrentDirectory = binPath;
-                // used to be binPath + "*\" "
-                // if this fails try minecraft.jar;lwjgl.jar;lwjgl_util.jar from http://stackoverflow.com/a/15562373/57883
-                var rawBinPath = "minecraft.jar;*";
-
-                string arguments = clientMemoryArguments + " -cp \"" + rawBinPath + "\" -Djava.library.path=\"" + nativesPath + "\" net.minecraft.client.Minecraft " + alias;
-                try
-                {
-                    var startInfo = new ProcessStartInfo(java, arguments);
-                    var p = Process.Start(startInfo);
-                    Debug.WriteLine(p.Id);
-                    System.Threading.Thread.Sleep(1000);
-                    if (p.HasExited && p.ExitCode > 0)
-                    {
-                        // try to launch it with output redirected to give an error message to the user
-                        startInfo.RedirectStandardError = true;
-                        startInfo.RedirectStandardOutput = true;
-                        startInfo.UseShellExecute = false;
-                        p = Process.Start(startInfo);
-                        p.WaitForExit();
-                        MessageBox.Show(this, p.StandardError.ReadToEnd());
-                        MessageBox.Show(this, p.StandardOutput.ReadToEnd());
-                    }
-                }
-                catch (Win32Exception ex)
-                {
-                    MessageBox.Show(this, ex.Message + Environment.NewLine + java + Environment.NewLine + arguments);
-                }
-            }
-            finally
-            {
-                Environment.CurrentDirectory = oldPath;
-            }
+            MineCraftLaunching.MinecraftAs(minecraftBinPath, java, clientMemoryArguments, alias, s => MessageBox.Show(s));
         }
 
         const string clientMemoryArguments = "-Xms512m -Xmx1024m";
