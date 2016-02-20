@@ -13,12 +13,18 @@ using System.Threading.Tasks;
 
 using Microsoft.FSharp.Core;
 
+using MinecraftManager.Lib;
+
 namespace MinecraftManager
 {
     public partial class Form1 : Form
     {
-        bool worldsDoLazy = false;
-        bool yamlsDoLazy = false;
+        bool worldsDoLazy;
+        bool yamlsDoLazy;
+        LogDisplay _logDisplay;
+        Process mcEdit;
+        Process bukkit;
+        Process nbtExplorer;
 
         public Form1()
         {
@@ -36,14 +42,10 @@ namespace MinecraftManager
 
         long GetLogSize()
         {
-            var path = Path.Combine(Properties.Settings.Default.MinecraftServerPath, "server.log");
+            var path = Path.Combine(Properties.Settings.Default.MinecraftServerPath, "logs", "latest.log");
             var fi = new FileInfo(path);
             return fi.Length;
         }
-
-        Process mcEdit;
-        Process bukkit;
-        Process nbtExplorer;
 
         void RunOrSetupProcess(string title, Func<string> pathGetter, ref Process process, Action<String> pathSetter)
         {
@@ -61,10 +63,7 @@ namespace MinecraftManager
                 process = Process.Start(path);
         }
 
-        TreeNode FindServerNode()
-        {
-            return treeView1.Nodes.Find("server", false).First();
-        }
+        TreeNode FindServerNode() => treeView1.Nodes.Find("server", false).First();
 
         IEnumerable<string> FindWorlds(string serverPath)
         {
@@ -152,14 +151,7 @@ namespace MinecraftManager
             SetupWorldsUI();
             SetupYamlUI();
             SetupBukkitMenus();
-            var serverPath = FindServerPath();
-            if (Directory.Exists(serverPath))
-            {
-                var server = "server.log";
-                var serverLog = System.IO.Path.Combine(serverPath, server);
-                if (File.Exists(serverLog) == false)
-                    return;
-            }
+            FindServerPath();
         }
 
 
@@ -314,37 +306,20 @@ namespace MinecraftManager
             return Properties.Settings.Default.MinecraftServerPath;
         }
 
-        string FindServerLog()
+        bool GetIsNone<T>(FSharpOption<T> opt) => FSharpOption<T>.get_IsNone(opt);
+
+        FindFileResult FindServerLogOpt()
         {
             var serverPath = FindServerPath();
             if (serverPath.IsNullOrEmpty() || Directory.Exists(serverPath) == false)
                 return null;
-            var path = Properties.Settings.Default.MinecraftServerPath;
-            var log = Path.Combine(path, "server.log");
-            if (File.Exists(log) == false)
-            {
-                toolStripStatusLabel1.Text = "Failed to find server.log";
-                toolStripStatusLabel1.Visible = true;
+            return Lib.Logs.findServerLogOpt(serverPath);
 
-                var t = new Task(() => { System.Threading.Thread.Sleep(3000); toolStripStatusLabel1.Visible = false; });
-                t.Start();
-                return null;
-            }
-
-            return log;
         }
-        LogDisplay _logDisplay;
-        void archiveLogToolStripMenuItem_Click(object sender, EventArgs e)
+
+        void ArchiveLogFile(FileRef fr)
         {
-
-            var logPath = FindServerLog();
-
-            if (File.Exists(logPath) == false)
-            {
-                MessageBox.Show("Could not find server log at " + Environment.NewLine + logPath);
-                return;
-            }
-
+            var logPath = fr.GetPath();
             var archiveName = Path.Combine(Path.GetDirectoryName(logPath), "server" + DateTime.UtcNow.ToString("yyyyMMdd") + ".log");
             if (File.Exists(archiveName))
             {
@@ -366,8 +341,22 @@ namespace MinecraftManager
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to archive log, the file may be in use by the server", ex.Message);
-
             }
+        }
+
+        void archiveLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            var logPath = FindServerLogOpt();
+            logPath.WithFoundValue(ArchiveLogFile, searchedPaths =>
+            {
+
+                toolStripStatusLabel1.Text = "Failed to find server log";
+                toolStripStatusLabel1.Visible = true;
+                MessageBox.Show("Could not find server log at any of " + Environment.NewLine + (string.Join(Environment.NewLine + "\t ", searchedPaths)));
+                var t = new Task(() => { System.Threading.Thread.Sleep(3000); toolStripStatusLabel1.Visible = false; });
+                t.Start();
+            });
         }
 
         void mCEditToolStripMenuItem_Click(object sender, EventArgs e)
@@ -403,7 +392,7 @@ namespace MinecraftManager
             var java = FSharpOption<string>.None;
             if (Properties.Settings.Default.Java.IsNullOrEmpty() == false)
                 java = Lib.JavaExe.InPathBehavior.TryLocate(Lib.CrossCutting.Logging.log);
-            if (FSharpOption<string>.get_IsNone(java))
+            if (GetIsNone(java))
             {
                 java = Lib.JavaExe.PropertyBehavior.TryLocate(() => Properties.Settings.Default.Java, () =>
                 {
@@ -433,17 +422,42 @@ namespace MinecraftManager
             var nativesPath = Path.Combine(binPath, "natives");
             if (java.Contains(" "))
                 java = "\"" + java + "\"";
-            string arguments = clientMemoryArguments + " -cp \"" + binPath + "*\" -Djava.library.path=\"" + nativesPath + "\" net.minecraft.client.Minecraft " + alias;
+            var oldPath = Environment.CurrentDirectory;
             try
             {
-                var startInfo = new ProcessStartInfo(java, arguments);
-                Process.Start(startInfo);
-            }
-            catch (Win32Exception ex)
-            {
-                MessageBox.Show(this, ex.Message + Environment.NewLine + java + Environment.NewLine + arguments);
-            }
+                Environment.CurrentDirectory = binPath;
+                // used to be binPath + "*\" "
+                // if this fails try minecraft.jar;lwjgl.jar;lwjgl_util.jar from http://stackoverflow.com/a/15562373/57883
+                var rawBinPath = "minecraft.jar;*";
 
+                string arguments = clientMemoryArguments + " -cp \"" + rawBinPath + "\" -Djava.library.path=\"" + nativesPath + "\" net.minecraft.client.Minecraft " + alias;
+                try
+                {
+                    var startInfo = new ProcessStartInfo(java, arguments);
+                    var p = Process.Start(startInfo);
+                    Debug.WriteLine(p.Id);
+                    System.Threading.Thread.Sleep(1000);
+                    if (p.HasExited && p.ExitCode > 0)
+                    {
+                        // try to launch it with output redirected to give an error message to the user
+                        startInfo.RedirectStandardError = true;
+                        startInfo.RedirectStandardOutput = true;
+                        startInfo.UseShellExecute = false;
+                        p = Process.Start(startInfo);
+                        p.WaitForExit();
+                        MessageBox.Show(this, p.StandardError.ReadToEnd());
+                        MessageBox.Show(this, p.StandardOutput.ReadToEnd());
+                    }
+                }
+                catch (Win32Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message + Environment.NewLine + java + Environment.NewLine + arguments);
+                }
+            }
+            finally
+            {
+                Environment.CurrentDirectory = oldPath;
+            }
         }
 
         const string clientMemoryArguments = "-Xms512m -Xmx1024m";
@@ -592,13 +606,21 @@ namespace MinecraftManager
                 _logDisplay.Show(this);
                 return;
             }
-            var log = FindServerLog();
-            if (log.IsNullOrEmpty() || !File.Exists(log))
+            var findResultOpt = FindServerLogOpt();
+            FileRef serverLogFileRef = null;
+            findResultOpt.WithFoundValue(fr => serverLogFileRef = fr, searchedPaths =>
+            {
+                toolStripStatusLabel1.Text = "Failed to find server log";
+                toolStripStatusLabel1.Visible = true;
+                MessageBox.Show("Could not find server log at any of " + Environment.NewLine + (string.Join(Environment.NewLine + "\t ", searchedPaths)));
+                var t = new Task(() => { System.Threading.Thread.Sleep(3000); toolStripStatusLabel1.Visible = false; });
+                t.Start();
+            });
+            if (serverLogFileRef == null)
                 return;
             var plugins = FindPlugins();
 
-
-            _logDisplay = new LogDisplay(log, plugins.Select(p => p.Name).ToArray());
+            _logDisplay = new LogDisplay(serverLogFileRef, plugins.Select(p => p.Name).ToArray());
 
 
 
