@@ -30,6 +30,7 @@ namespace MinecraftManager
         {
             Properties.Settings.Default.PropertyChanged += Default_PropertyChanged;
             InitializeComponent();
+            this.Text = this.Text + " " + System.Reflection.Assembly.GetAssembly(typeof(Form1)).GetName().Version.ToString();
         }
 
         void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -40,14 +41,10 @@ namespace MinecraftManager
                 OnServerPathFoundOrChanged();
         }
 
-        long GetLogSize()
-        {
-            var path = Path.Combine(Properties.Settings.Default.MinecraftServerPath, "logs", "latest.log");
-            var fi = new FileInfo(path);
-            return fi.Length;
-        }
+        long GetLogSize() =>
+            Logs.getServerLogSize(Properties.Settings.Default.MinecraftServerPath) ?? 0;
 
-        void RunOrSetupProcess(string title, Func<string> pathGetter, ref Process process, Action<String> pathSetter)
+        void RunOrSetupProcess(string title, Func<string> pathGetter, ref Process process, Action<string> pathSetter)
         {
             Application.DoEvents(); //let menus hide themselves if a click invoked this
             var path = pathGetter();
@@ -79,6 +76,7 @@ namespace MinecraftManager
                 return;
             var worlds = FindWorlds(Properties.Settings.Default.MinecraftServerPath);
             var serverNode = FindServerNode();
+            serverNode.ToolTipText = "Server dir: " + Properties.Settings.Default.MinecraftServerPath;
             foreach (var worldPath in worlds)
             {
                 var closurePath = worldPath;
@@ -120,9 +118,11 @@ namespace MinecraftManager
         {
             if (Directory.Exists(Properties.Settings.Default.MinecraftServerPath) == false)
                 return;
-            var plugins =
-                Directory.GetFiles(
-                    Path.Combine(Properties.Settings.Default.MinecraftServerPath, "plugins"), "*.jar");
+            var pluginFolder = Path.Combine(Properties.Settings.Default.MinecraftServerPath, "plugins");
+            if (Directory.Exists(pluginFolder) == false)
+                return;
+
+            var plugins = Directory.GetFiles(pluginFolder, "*.jar");
             var pluginNode = FindServerNode().TryFindNode("plugins");
             foreach (var p in plugins)
             {
@@ -184,8 +184,6 @@ namespace MinecraftManager
 
         }
 
-
-
         void Form1_Load(object sender, EventArgs e)
         {
 
@@ -200,9 +198,9 @@ namespace MinecraftManager
             }
 
             SetupLinksMenus();
-            SetupPluginsUI();
             SetupTextUI();
             SetupSettingsUI();
+            SetupPluginsUI();
         }
 
         void SetupSettingsUI()
@@ -313,8 +311,7 @@ namespace MinecraftManager
             var serverPath = FindServerPath();
             if (serverPath.IsNullOrEmpty() || Directory.Exists(serverPath) == false)
                 return null;
-            return Lib.Logs.findServerLogOpt(serverPath);
-
+            return Logs.findServerLogOpt(serverPath);
         }
 
         void ArchiveLogFile(FileRef fr)
@@ -326,6 +323,7 @@ namespace MinecraftManager
                 MessageBox.Show("today's backup already exists");
                 return;
             }
+
             var creation = File.GetCreationTimeUtc(logPath);
             var age = DateTime.UtcNow - creation;
             if (age.TotalHours < 8)
@@ -334,6 +332,7 @@ namespace MinecraftManager
                                 " hours old");
                 return;
             }
+
             try
             {
                 File.Move(logPath, archiveName);
@@ -350,7 +349,6 @@ namespace MinecraftManager
             var logPath = FindServerLogOpt();
             logPath.WithFoundValue(ArchiveLogFile, searchedPaths =>
             {
-
                 toolStripStatusLabel1.Text = "Failed to find server log";
                 toolStripStatusLabel1.Visible = true;
                 MessageBox.Show("Could not find server log at any of " + Environment.NewLine + (string.Join(Environment.NewLine + "\t ", searchedPaths)));
@@ -367,7 +365,6 @@ namespace MinecraftManager
                 mCEditToolStripMenuItem.BackColor = Color.White;
 
             RunOrSetupProcess("McEdit", () => Properties.Settings.Default.MCEdit, ref mcEdit, s => Properties.Settings.Default.NbtExplorer = s);
-
         }
 
         void nbtExplorerToolStripMenuItem_Click(object sender, EventArgs e)
@@ -382,10 +379,8 @@ namespace MinecraftManager
                 doubleClickActions[e.Node]();
         }
 
-        void exitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        void exitToolStripMenuItem_Click(object sender, EventArgs e) =>
             this.Close();
-        }
 
         string FindJava()
         {
@@ -404,7 +399,7 @@ namespace MinecraftManager
                     });
                     return Properties.Settings.Default.Java;
                 });
-                if (FSharpOption<string>.get_IsNone(java))
+                if (GetIsNone(java))
                     return null;
             }
             return java.Value;
@@ -412,7 +407,6 @@ namespace MinecraftManager
 
         void RunMinecraftAs(string java, string minecraftBinPath, string alias = null)
         {
-
             if (alias.IsNullOrEmpty())
                 alias = InputForm.ShowDialog("Minecraft Alias", "Minecraft as whom?");
             if (alias.IsNullOrEmpty())
@@ -429,9 +423,9 @@ namespace MinecraftManager
             if (serverPath.IsNullOrEmpty() || Directory.Exists(serverPath) == false)
                 return;
 
-            var bukkits = System.IO.Directory.GetFiles(serverPath, "*.jar").Where(p => p.Contains("bukkit"));
+            var bukkits = Directory.GetFiles(serverPath, "*.jar").Where(p => p.Contains("bukkit"));
             var bukkitInfo = from b in bukkits
-                             let info = new System.IO.FileInfo(b)
+                             let info = new FileInfo(b)
                              orderby info.LastWriteTimeUtc descending
                              select new { b, info };
             foreach (var bukkit in bukkitInfo)
@@ -446,6 +440,7 @@ namespace MinecraftManager
                     };
             }
         }
+
         Process LaunchBukkit(FileInfo bukkitInfo)
         {
             var java = FindJava();
@@ -481,6 +476,7 @@ namespace MinecraftManager
             }
             return bukkit;
         }
+
         void craftBukkitToolStripMenuItem_Click(object sender, EventArgs e)
         {
 
@@ -495,7 +491,6 @@ namespace MinecraftManager
                              select new { b, info };
             var latestBukkit = bukkitInfo.FirstOrDefault();
             LaunchBukkit(latestBukkit.info);
-
         }
 
         string FindMinecraftBinPath()
@@ -536,18 +531,16 @@ namespace MinecraftManager
 
         void minecraftToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
             Process mc = null;
             RunOrSetupProcess("Minecraft", () => Properties.Settings.Default.Minecraft, ref mc,
                               s => Properties.Settings.Default.Minecraft = s);
-
-
         }
 
         void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show(Application.ProductVersion);
         }
+
         IEnumerable<TreeNode> FindPlugins()
         {
             var server = FindServerNode();
@@ -557,8 +550,8 @@ namespace MinecraftManager
             if (pluginsNode == null)
                 return Enumerable.Empty<TreeNode>();
             return pluginsNode.Nodes.Cast<TreeNode>();
-
         }
+
         void viewLogToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (_logDisplay != null && _logDisplay.IsDisposed == false && _logDisplay.Disposing == false)
@@ -582,14 +575,7 @@ namespace MinecraftManager
 
             _logDisplay = new LogDisplay(serverLogFileRef, plugins.Select(p => p.Name).ToArray());
 
-
-
             _logDisplay.Show(this);
         }
-
-
-
-
-
     }
 }

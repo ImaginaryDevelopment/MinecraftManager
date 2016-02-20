@@ -75,6 +75,12 @@ module Logs =
             | Some fp -> Found fp
             | None -> NotFoundIn toSearch
 
+    let getServerLogSize serverPath = 
+        match findServerLogOpt serverPath with
+        | Found fp -> FileInfo(fp.Path).Length |> Nullable
+        | _ -> Nullable()
+
+
 
 module MineCraftLaunching = // translated from http://www.minecraftforum.net/forums/support/unmodified-minecraft-client/tutorials-and-faqs/1871678-how-to-use-custom-jars-in-the-new-launcher?comment=8
     // requires server (server.properties file) be set to online-mode = false
