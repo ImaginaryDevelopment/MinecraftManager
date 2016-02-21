@@ -15,6 +15,9 @@ using Microsoft.FSharp.Core;
 
 using MinecraftManager.Lib;
 
+using static BReusable.Files;
+using static BReusable.Files.FindRefExtensions;
+
 namespace MinecraftManager
 {
     public partial class Form1 : Form
@@ -62,42 +65,19 @@ namespace MinecraftManager
 
         TreeNode FindServerNode() => treeView1.Nodes.Find("server", false).First();
 
-        IEnumerable<string> FindWorlds(string serverPath)
+        IEnumerable<TreeNode> FindChildren(TreeNode node, string key, bool searchAllChildren) => node.Nodes.Find(key, searchAllChildren);
+
+        Node<TreeNode> ToNode(TreeNode node)
         {
-            foreach (var dir in Directory.GetDirectories(serverPath))
-                if (Directory.GetFiles(dir, "level.dat").Any())
-                    yield return dir;
+            return new Node<TreeNode>(node, findChildren: (n, k, c) => n.Nodes.Find(k, c).Select(ToNode), addChild: (n, k, t) => ToNode(n.Nodes.Add(k, t)), addTag: (n, s) => n.Tag = s, setTooltip: (n, s) => n.ToolTipText = s);
         }
 
         void SetupWorldsUI()
         {
             var serverPath = FindServerPath();
-            if (serverPath.IsNullOrEmpty() || !Directory.Exists(serverPath))
-                return;
-            var worlds = FindWorlds(Properties.Settings.Default.MinecraftServerPath);
-            var serverNode = FindServerNode();
-            serverNode.ToolTipText = "Server dir: " + Properties.Settings.Default.MinecraftServerPath;
-            foreach (var worldPath in worlds)
-            {
-                var closurePath = worldPath;
-                var worldName = Path.GetFileName(worldPath);
-                var worldsNode = serverNode.Nodes.Find("worlds", false).FirstOrDefault();
-                if (worldsNode == null)
-                {
-                    return;
-                }
-                var worldNode = worldsNode.Nodes.Find(worldName, false).FirstOrDefault();
-                if (worldNode == null)
-                {
-                    worldNode = new TreeNode(worldName) { Name = worldName };
-                    worldNode.Tag = worldPath;
-                    worldNode.ToolTipText = worldPath;
-                    if (worldsDoLazy)
-                        worldNode.Nodes.Add(string.Empty); //Place holder for lazy expansion
-                    doubleClickActions.Add(worldNode, () => Process.Start(closurePath));
-                    worldsNode.Nodes.Add(worldNode);
-                }
-            }
+
+            var serverNode = ToNode(FindServerNode());
+            Worlds.SetupWorldsUI(serverNode, serverPath, Properties.Settings.Default.MinecraftClientPath, worldsDoLazy, (node, act) => doubleClickActions.Add(node, () => act()));
         }
 
         void SetupTextUI()
@@ -154,7 +134,6 @@ namespace MinecraftManager
             FindServerPath();
         }
 
-
         void OnServerLogChanged()
         {
             var logSize = GetLogSize();
@@ -181,7 +160,6 @@ namespace MinecraftManager
 
             }
             else this.archiveLogToolStripMenuItem.BackColor = Color.White;
-
         }
 
         void Form1_Load(object sender, EventArgs e)
@@ -228,29 +206,28 @@ namespace MinecraftManager
 
                 newItem.ToolTipText = value;
                 if (closure.CanWrite)
-                    newItem.Click += (sender, e) =>
-                                         {
-                                             if (closure.Name.EndsWith("path", StringComparison.CurrentCultureIgnoreCase))
-                                             {
-                                                 this.SetFolderPath("Locate the " + closure.Name, p =>
-                                                     {
-                                                         closure.SetValue(Properties.Settings.Default, p, null);
-                                                         Properties.Settings.Default.Save();
-                                                         newItem.BackColor = Color.White;
-                                                     });
-                                             }
-                                             else
-                                             {
-                                                 this.SetFilePath("Locate " + setting.Name, p =>
-                                                      {
-                                                          closure.SetValue(Properties.Settings.Default, p, null);
-                                                          Properties.Settings.Default.Save();
-                                                          newItem.BackColor = Color.White;
-                                                      });
-                                             }
-
-                                         };
-
+                    newItem.Click +=
+                        (sender, e) =>
+                         {
+                             if (closure.Name.EndsWith("path", StringComparison.CurrentCultureIgnoreCase))
+                             {
+                                 this.SetFolderPath("Locate the " + closure.Name, p =>
+                                     {
+                                         closure.SetValue(Properties.Settings.Default, p, null);
+                                         Properties.Settings.Default.Save();
+                                         newItem.BackColor = Color.White;
+                                     });
+                             }
+                             else
+                             {
+                                 this.SetFilePath("Locate " + setting.Name, p =>
+                                      {
+                                          closure.SetValue(Properties.Settings.Default, p, null);
+                                          Properties.Settings.Default.Save();
+                                          newItem.BackColor = Color.White;
+                                      });
+                             }
+                         };
             }
         }
 
@@ -271,7 +248,6 @@ namespace MinecraftManager
                 doubleClickActions.Add(newYaml, () => Process.Start(closureYml));
                 yamlNode.Nodes.Add(newYaml);
             }
-
         }
 
         IDictionary<TreeNode, Action> doubleClickActions = new Dictionary<TreeNode, Action>();
@@ -285,9 +261,9 @@ namespace MinecraftManager
                 var newMenu = linksToolStripMenuItem.DropDownItems.Add(title);
                 newMenu.ToolTipText = link;
                 newMenu.Click += delegate { Process.Start(link); };
-
             }
         }
+
         string FindServerPath(bool promptUser = true)
         {
             var path = Properties.Settings.Default.MinecraftServerPath;
@@ -345,7 +321,6 @@ namespace MinecraftManager
 
         void archiveLogToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
             var logPath = FindServerLogOpt();
             logPath.WithFoundValue(ArchiveLogFile, searchedPaths =>
             {
@@ -536,10 +511,8 @@ namespace MinecraftManager
                               s => Properties.Settings.Default.Minecraft = s);
         }
 
-        void aboutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        void aboutToolStripMenuItem_Click(object sender, EventArgs e) =>
             MessageBox.Show(Application.ProductVersion);
-        }
 
         IEnumerable<TreeNode> FindPlugins()
         {
@@ -571,6 +544,7 @@ namespace MinecraftManager
             });
             if (serverLogFileRef == null)
                 return;
+
             var plugins = FindPlugins();
 
             _logDisplay = new LogDisplay(serverLogFileRef, plugins.Select(p => p.Name).ToArray());

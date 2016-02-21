@@ -6,27 +6,8 @@ open System.ComponentModel
 open System.IO
 open System.Runtime.CompilerServices
 
-type FileRef = private { Path:string }
-[<RequireQualifiedAccess; CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
-module FileRef = 
-    let tryMakeFile path = 
-        match File.Exists path with
-        | true -> {Path = path} |> Some
-        | false -> None
+open Files
 
-type FindFileResult =
-    |Found of FileRef
-    |NotFoundIn of string seq
-
-[<Extension>] // c# helpers
-module FindRefExtensions =
-    [<Extension>]
-    let WithFoundValue ff (fIfFound:Action<_>) (fIfNotFound:Action<_>) =
-        match ff with
-        |Found fr -> fIfFound.Invoke fr
-        | NotFoundIn searchPaths -> fIfNotFound.Invoke searchPaths
-    [<Extension>]
-    let GetPath (f:FileRef)= f.Path
 
 module CrossCutting = 
     module Logging = 
@@ -77,10 +58,87 @@ module Logs =
 
     let getServerLogSize serverPath = 
         match findServerLogOpt serverPath with
-        | Found fp -> FileInfo(fp.Path).Length |> Nullable
+        | Found fp -> FileInfo(FileRef.getPath fp).Length |> Nullable
         | _ -> Nullable()
+//module NodeWrapper =
+//    type NodeCollection<'t>(nodes) = 
+//        member x.Find()
+//        
+//    type Node< ^t when ^t : (member Nodes : Node< ^t > seq) > = 
+//        {Node:^t} 
+//            with
+//                member x.Nodes : seq<Node< ^t >> = (^t : (member Nodes : seq<Node< ^t >>) (x.Node))
 
+// treenode wrapper
+type Node<'t>(t, fFindChildren, fAddChild, fAddTag, fSetTooltip) = 
+    new (t:'t, findChildren:Func<_,_,_,_>, addChild:Func<'t,string,string,Node<'t>>, addTag:Action<'t,obj>, setTooltip:Action<'t,string>) =
+        Node(t,findChildren.Invoke, addChild.Invoke, addTag.Invoke, setTooltip.Invoke )
+    member x.Node = t
+    member x.Find (key,searchAllChildren) : Node<'t> seq = fFindChildren(x.Node, key,searchAllChildren)
+    member x.AddChild key text:Node<'t> = fAddChild(x.Node,key,text)
+    member x.AddTag (v:obj) = fAddTag(x.Node, v)
+    member x.SetTooltip text = fSetTooltip(x.Node, text)
 
+module Worlds = 
+    type WorldType = |Server |Client// single player world
+        with override x.ToString() = sprintf "%A" x
+    let findWorlds serverPath clientPath = 
+        seq {
+            for dir in Directory.GetDirectories serverPath do
+                if Directory.GetFiles(dir, "level.dat") |> Seq.Any then
+                    yield (Server,dir)
+            match clientPath with
+            | NullString |EmptyString | Whitespace -> ()
+            | ValueString -> 
+                
+                //directory not a file
+                match IOPath.tryMakeIOPath clientPath with
+                | Some clientPath ->
+                    let savesDir = Path.Combine(IOPath.getPath(clientPath),"saves")
+                    for dir in Directory.GetDirectories savesDir do
+                        if Directory.EnumerateFiles(dir, "level.dat") |> Seq.Any then
+                            yield (Client,dir)
+                | None -> ()
+        }
+
+    let setupWorldsUI (serverNode:Node<_>) serverPath minecraftClientPathOpt worldsDoLazy addNodeDoubleClick= 
+        if String.IsNullOrEmpty serverPath || not <| Directory.Exists serverPath then
+            ()
+        else
+            match serverNode.Find("worlds", false) |> Seq.FirstOrDefault with
+            | Some worldsNode -> 
+                let findOrCreate (parent:Node<_>) key text = 
+                    let existingNode = parent.Find(key,false) |> Seq.FirstOrDefault
+                    match existingNode with 
+                    |Some x -> x
+                    | None -> parent.AddChild key text
+
+                let serverWorldsNode = findOrCreate worldsNode "server" "ServerWorlds"
+                serverWorldsNode.SetTooltip ("Server dir: " + serverPath)
+                let clientWorldsNode = findOrCreate worldsNode "client" "ClientWorlds"
+                let worlds = findWorlds serverPath minecraftClientPathOpt |> List.ofSeq
+
+                for (worldType,dir) in worlds do
+                    let worldName = Path.GetFileName dir
+                    let createWorldNode () = 
+                        let worldNode = 
+                            match worldType with
+                                | Server -> serverWorldsNode
+                                | Client -> clientWorldsNode
+                            |> (fun p -> p.AddChild worldName (sprintf "%s (%A)" worldName worldType ))
+                        worldNode.AddTag dir
+                        worldNode.SetTooltip dir
+                        if worldsDoLazy then
+                            worldNode.AddChild String.Empty String.Empty |> ignore<Node<_>>
+                        addNodeDoubleClick(worldNode.Node, fun () -> Process.Start dir)
+                        // doubleClickActions.Add(worldNode, fun () -> Process.Start(closurePath))
+                        worldNode
+                    match worldsNode.Find(worldName, false) |> Seq.FirstOrDefault with
+                    | Some x -> ()
+                    | None -> createWorldNode() |> ignore<Node<_>>
+            | None -> ()
+    let SetupWorldsUI (serverNode:Node<_>) serverPath minecraftClientPathOpt worldsDoLazy (addNodeDoubleClick:Action<'t,Func<_>>) = 
+        setupWorldsUI serverNode serverPath minecraftClientPathOpt worldsDoLazy addNodeDoubleClick.Invoke
 
 module MineCraftLaunching = // translated from http://www.minecraftforum.net/forums/support/unmodified-minecraft-client/tutorials-and-faqs/1871678-how-to-use-custom-jars-in-the-new-launcher?comment=8
     // requires server (server.properties file) be set to online-mode = false

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -8,10 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-
-using MinecraftManager.Lib;
+using static BReusable.Files;
+using static BReusable.Files.FindRefExtensions;
 
 namespace MinecraftManager
 {
@@ -51,8 +49,6 @@ namespace MinecraftManager
             return sb.ToString();
         }
 
-
-
         public void ReadFile()
         {
 
@@ -67,7 +63,6 @@ namespace MinecraftManager
             // richTextBox1.HideSelection = true;
             richTextBox1.Enabled = false;
             richTextBox1.Cursor = Cursors.WaitCursor;
-
 
             for (int i = 0; i < richTextBox1.Lines.Length; i++)
             {
@@ -141,9 +136,6 @@ namespace MinecraftManager
                 var key = GetKeyWord(line.Substring(indexInCurrentLine));
                 if (key != null)
                     yield return Tuple.Create(indexInCurrentLine + key.Item1, key.Item2, Color.Blue);
-
-
-
             }
             else // assume sub text of previous message
             {
@@ -189,12 +181,9 @@ namespace MinecraftManager
                 }
             }
         }
-
         void LogDisplay_Load(object sender, EventArgs e)
         {
             ReadFile();
         }
-
-
     }
 }

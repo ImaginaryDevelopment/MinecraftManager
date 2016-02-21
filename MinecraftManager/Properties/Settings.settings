@@ -43,5 +43,8 @@
     <Setting Name="Java" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:\Program Files (x86)\Java\jre6\bin\java.exe</Value>
     </Setting>
+    <Setting Name="MinecraftClientPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">%appdata%\.minecraft\</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
